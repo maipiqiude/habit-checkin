@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2f9e6e" />
+<title>习惯打卡</title>
+<style>
+:root{
+  --green:#2f9e6e;
+  --green-dark:#258a5e;
+  --green-bg:#e7f6ee;
+  --bg1:#eef4f0;
+  --bg2:#f5f8f6;
+  --card:#ffffff;
+  --text:#2c3238;
+  --muted:#8b939c;
+  --faint:#b8bfc6;
+  --line:#e8ecee;
+  --danger:#e5484d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;
+  background:linear-gradient(160deg,var(--bg1),var(--bg2) 60%,var(--bg1));
+  min-height:100vh;
+  color:var(--text);
+  padding:24px 16px 60px;
+}
+.app{max-width:520px;margin:0 auto;}
+.brand{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800;margin:0;}
+.brand .dot{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,#3fbf8d,var(--green));display:inline-block;}
+.topline{display:flex;align-items:center;justify-content:space-between;margin:0 2px 14px;}
+.gear{border:1px solid var(--line);background:#fff;width:38px;height:38px;border-radius:12px;font-size:18px;cursor:pointer;line-height:1;box-shadow:0 4px 12px rgba(45,70,60,.06);transition:transform .15s,border-color .15s;}
+.gear:hover{border-color:var(--green);transform:rotate(20deg);}
+.card{background:var(--card);border-radius:20px;box-shadow:0 8px 28px rgba(45,70,60,.07);padding:20px;margin-bottom:16px;border:1px solid rgba(255,255,255,.6);}
+
+/* header */
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.hdate{font-size:21px;font-weight:800;letter-spacing:.2px;}
+.hsub{font-size:13px;color:var(--muted);margin-top:5px;}
+.hsub.celebrate{color:var(--green-dark);font-weight:600;}
+.hbig{font-size:36px;font-weight:800;color:var(--green);line-height:1.1;font-variant-numeric:tabular-nums;}
+.hbig .big-total{color:var(--faint);font-size:20px;font-weight:700;}
+.bar{height:8px;border-radius:99px;background:#edf0f2;overflow:hidden;margin-top:16px;}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#43c293,var(--green));transition:width .45s cubic-bezier(.22,1,.36,1);}
+
+/* list */
+#habitList{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+.habit{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:15px;cursor:pointer;transition:background .15s,border-color .15s;user-select:none;}
+.habit:hover{background:#f5faf7;border-color:#d3e4da;}
+.habit .hemoji{font-size:25px;line-height:1;transition:filter .2s,opacity .2s;}
+.habit .hname{flex:1;min-width:0;font-size:16px;font-weight:500;transition:color .2s;overflow-wrap:anywhere;}
+.habit .hcheck{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid #cfd5db;position:relative;transition:background .18s,border-color .18s,transform .12s;}
+.habit:active .hcheck{transform:scale(.92);}
+.hcheck::after{content:'';position:absolute;left:50%;top:50%;width:11px;height:6px;border-left:2.5px solid #fff;border-bottom:2.5px solid #fff;transform:translate(-50%,-60%) rotate(-45deg);opacity:0;transition:opacity .12s;}
+.hdel{flex:none;border:none;background:none;color:#c6ccd2;font-size:13px;line-height:1;padding:6px;margin:-6px;cursor:pointer;border-radius:50%;opacity:0;transition:opacity .15s,color .15s;}
+.habit:hover .hdel,.hdel:focus-visible{opacity:1;}
+@media (hover:none){.hdel{opacity:.5;}}
+.hdel:hover{color:var(--danger);}
+
+.habit.done{background:#f4f6f7;border-color:#e9edef;}
+.habit.done .hname{color:#b3bac1;text-decoration:line-through;text-decoration-color:#c8ced4;}
+.habit.done .hemoji{filter:grayscale(1);opacity:.45;}
+.habit.done .hcheck{background:var(--green);border-color:var(--green);}
+.habit.done .hcheck::after{opacity:1;}
+
+/* delete confirm row */
+.habit.confirm{cursor:default;background:#fff8f6;border-color:#f0d5d3;flex-wrap:wrap;gap:10px;}
+.cf-text{flex:1;min-width:150px;font-size:14px;color:#8a5250;}
+.cf-actions{display:flex;gap:8px;}
+.mini{border:none;border-radius:9px;padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;}
+.mini.gray{background:#eef1f3;color:#5b6570;}
+.mini.gray:hover{background:#e3e8eb;}
+.mini.danger{background:var(--danger);color:#fff;}
+.mini.danger:hover{background:#cf3f44;}
+
+/* empty */
+.empty{text-align:center;padding:26px 10px 6px;color:var(--muted);}
+.empty .eicon{font-size:44px;line-height:1;}
+.empty p{margin:12px 0 16px;font-size:15px;}
+.chips{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:9px 16px;font-size:14px;cursor:pointer;color:var(--text);transition:all .15s;}
+.chips button:hover{border-color:var(--green);color:var(--green-dark);background:var(--green-bg);transform:translateY(-1px);}
+
+/* add form */
+.addform{display:flex;gap:8px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);}
+.inp{border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:15px;font-family:inherit;outline:none;background:#fbfcfd;color:var(--text);transition:border-color .15s,background .15s;}
+.inp:focus{border-color:var(--green);background:#fff;}
+.inp::placeholder{color:#c0c6cc;}
+.name-inp{flex:1;min-width:0;}
+.emoji-inp{width:78px;text-align:center;}
+.addbtn{border:none;border-radius:12px;padding:0 20px;background:var(--green);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s,transform .1s;}
+.addbtn:hover{background:var(--green-dark);}
+.addbtn:active{transform:scale(.96);}
+.btn2{border:1px solid var(--line);background:#fff;border-radius:12px;padding:0 18px;height:42px;font-size:14px;font-weight:600;color:#5b6570;cursor:pointer;font-family:inherit;}
+.btn2:hover{border-color:var(--green);color:var(--green-dark);}
+.err{color:var(--danger);font-size:13px;margin-top:10px;}
+
+/* history */
+.hist h2{margin:0;font-size:15px;font-weight:700;color:var(--muted);}
+.calnav{display:flex;align-items:center;justify-content:space-between;margin:12px 0 6px;}
+.navbtn{width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:19px;color:#5b6570;cursor:pointer;line-height:1;padding:0;transition:all .15s;}
+.navbtn:hover:not(:disabled){border-color:var(--green);color:var(--green-dark);}
+.navbtn:disabled{opacity:.35;cursor:default;}
+.caltitle{font-size:17px;font-weight:800;}
+.calwd,.calgrid{display:grid;grid-template-columns:repeat(7,1fr);}
+.calwd span{text-align:center;font-size:12px;color:#a9afb6;padding:5px 0;font-weight:600;}
+.calgrid{gap:4px;margin-top:2px;}
+.ccell{min-height:50px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+.ccell .dnum{font-size:14px;color:#3b424b;line-height:1;}
+.ccell .dstat{font-size:10.5px;color:#9aa2ab;line-height:1;font-variant-numeric:tabular-nums;}
+.ccell .dstat.zero{color:#d6dbe0;}
+.ccell.full{background:var(--green-bg);}
+.ccell.full .dnum{color:var(--green-dark);font-weight:800;}
+.ccell.full .dstat{color:var(--green);font-weight:800;}
+.ccell.today{box-shadow:inset 0 0 0 2px var(--green);}
+.ccell.future{opacity:.38;}
+.calnote{margin-top:12px;font-size:12px;color:#b6bdc4;text-align:center;}
+
+/* sync settings */
+.synchead{display:flex;align-items:center;justify-content:space-between;}
+.synchead h2{margin:0;font-size:15px;font-weight:700;color:var(--muted);}
+.syncbadge{font-size:12px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:4px 10px;border-radius:99px;}
+.syncbadge.off{color:#7c848d;background:#eef1f3;}
+.syncbadge.err{color:var(--danger);background:#fdecec;}
+.synctip{font-size:12.5px;color:var(--muted);line-height:1.6;margin:12px 0 4px;}
+#syncCard label{display:block;font-size:12px;color:var(--muted);margin-top:10px;}
+#syncCard .inp{width:100%;margin-top:4px;}
+.syncactions{display:flex;gap:10px;margin-top:14px;}
+.syncactions .addbtn{height:42px;}
+.synckey{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6;}
+.synckey.ok{color:var(--green-dark);}
+.synckey.err{color:var(--danger);}
+.syncclear{display:inline-block;border:none;background:none;color:#9aa2ab;font-size:12px;text-decoration:underline;cursor:pointer;margin-top:12px;padding:0;}
+
+/* footer sync status */
+.foot{margin:18px 4px 0;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:#9aa2ab;cursor:pointer;user-select:none;}
+.foot .st.ok{color:var(--green-dark);}
+.foot .st.err{color:var(--danger);}
+.foot .st.busy{color:#b08a2e;}
+</style>
+</head>
+<body>
+<main class="app">
+  <div class="topline">
+    <div class="brand"><span class="dot"></span>习惯打卡</div>
+    <button class="gear" id="gearBtn" type="button" aria-label="多端同步设置" title="多端同步设置">⚙️</button>
+  </div>
+
+  <section class="card" id="topCard">
+    <div class="hrow">
+      <div>
+        <div class="hdate" id="dateLabel"></div>
+        <div class="hsub" id="subLabel"></div>
+      </div>
+      <div class="hbig" id="bigProgress"></div>
+    </div>
+    <div class="bar"><i id="barFill"></i></div>
+  </section>
+
+  <section class="card" id="syncCard" hidden>
+    <div class="synchead">
+      <h2>多端同步设置</h2>
+      <span class="syncbadge off" id="syncBadge">未开启</span>
+    </div>
+    <p class="synctip">把打卡数据存到你 GitHub 的一个私有仓库，手机和电脑就能看到同一份记录。同步用的 Token 只保存在“当前这台设备的浏览器”里，不会上传到本页面以外的地方。</p>
+    <label>GitHub 用户名
+      <input class="inp" id="sOwner" placeholder="例如 octocat" autocomplete="off" spellcheck="false" />
+    </label>
+    <label>数据仓库名（私有）
+      <input class="inp" id="sRepo" placeholder="例如 habit-data" autocomplete="off" spellcheck="false" />
+    </label>
+    <label>访问令牌（Token，需 Contents 读写权限）
+      <input class="inp" id="sToken" type="password" placeholder="github_pat_… 或 ghp_…" autocomplete="off" spellcheck="false" />
+    </label>
+    <div class="syncactions">
+      <button class="addbtn" id="sSave" type="button">保存并同步</button>
+      <button class="btn2" id="sTest" type="button">测试连接</button>
+    </div>
+    <div class="synckey" id="sHint"></div>
+    <button class="syncclear" id="sClear" type="button">清除同步设置（回到仅本机保存）</button>
+  </section>
+
+  <section class="card">
+    <ul id="habitList"></ul>
+    <div class="empty" id="emptyBox" hidden>
+      <div class="eicon">🌱</div>
+      <p>还没有习惯，先添加几个想坚持的吧</p>
+      <div class="chips" id="chips">
+        <button type="button" data-name="喝水" data-emoji="💧">💧 喝水</button>
+        <button type="button" data-name="运动" data-emoji="🏃">🏃 运动</button>
+        <button type="button" data-name="读书" data-emoji="📖">📖 读书</button>
+      </div>
+    </div>
+    <form class="addform" id="addForm" autocomplete="off">
+      <input class="inp name-inp" id="nameInput" placeholder="习惯名称，如：喝水" maxlength="20" />
+      <input class="inp emoji-inp" id="emojiInput" placeholder="emoji" maxlength="8" />
+      <button class="addbtn" type="submit">添加</button>
+    </form>
+    <div class="err" id="errBox" hidden></div>
+  </section>
+
+  <section class="card hist" id="histCard" hidden>
+    <h2>历史记录</h2>
+    <div class="calnav">
+      <button class="navbtn" id="prevBtn" type="button" aria-label="上个月">‹</button>
+      <span class="caltitle" id="calTitle"></span>
+      <button class="navbtn" id="nextBtn" type="button" aria-label="下个月">›</button>
+    </div>
+    <div class="calwd"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+    <div class="calgrid" id="calGrid"></div>
+    <div class="calnote">格子里显示「完成 / 应有」</div>
+  </section>
+
+  <div class="foot" id="footBtn" role="button" title="多端同步设置">
+    <span class="st" id="syncText">仅本机保存</span><span>⚙</span>
+  </div>
+</main>
+<script>
+(function(){
+  'use strict';
+  var LS_HABITS='habits.v1';
+  var LS_RECORDS='records.v1';
+  var LS_SYNC='sync.v1';
+
+  function load(key,fb){
+    try{
+      var raw=localStorage.getItem(key);
+      if(raw===null||raw===undefined) return fb;
+      return JSON.parse(raw);
+    }catch(e){ return fb; }
+  }
+  function save(key,val){
+    try{ localStorage.setItem(key,JSON.stringify(val)); }catch(e){}
+  }
+
+  var habits=load(LS_HABITS,[]);
+  var records=load(LS_RECORDS,{});
+  if(!Array.isArray(habits)) habits=[];
+  habits=habits.filter(function(h){ return h&&typeof h.id==='string'&&typeof h.name==='string'&&h.name.trim().length>0; });
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function dateKeyOf(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function todayKey(){ return dateKeyOf(new Date()); }
+  function uid(){ return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+  function sanitizeAll(){
+    if(!records||typeof records!=='object'||Array.isArray(records)) records={};
+    var ids={}; habits.forEach(function(h){ ids[h.id]=1; });
+    Object.keys(records).forEach(function(k){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(k)||!Array.isArray(records[k])){ delete records[k]; return; }
+      records[k]=records[k].filter(function(id){ return !!ids[id]; });
+      if(records[k].length===0) delete records[k];
+    });
+    var tk=todayKey();
+    habits.forEach(function(h){
+      if(typeof h.emoji!=='string'||!h.emoji) h.emoji='⭐';
+      if(typeof h.createdAt!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(h.createdAt)||h.createdAt>tk) h.createdAt=tk;
+    });
+  }
+  sanitizeAll();
+
+  function $(id){ return document.getElementById(id); }
+  var dateLabel=$('dateLabel'), subLabel=$('subLabel'), bigProgress=$('bigProgress'), barFill=$('barFill');
+  var habitList=$('habitList'), emptyBox=$('emptyBox'), chips=$('chips');
+  var addForm=$('addForm'), nameInput=$('nameInput'), emojiInput=$('emojiInput'), errBox=$('errBox');
+  var histCard=$('histCard'), prevBtn=$('prevBtn'), nextBtn=$('nextBtn'), calTitle=$('calTitle'), calGrid=$('calGrid');
+  var gearBtn=$('gearBtn'), syncCard=$('syncCard'), syncBadge=$('syncBadge');
+  var sOwner=$('sOwner'), sRepo=$('sRepo'), sToken=$('sToken'), sSave=$('sSave'), sTest=$('sTest'), sClear=$('sClear'), sHint=$('sHint');
+  var footBtn=$('footBtn'), syncText=$('syncText');
+
+  /* ---------- 多端同步 (GitHub 私有仓库) ---------- */
+  var sync=load(LS_SYNC,null);
+  if(!sync||typeof sync!=='object'||Array.isArray(sync)) sync={owner:'',repo:'',token:'',branch:'main',updatedAt:null,dirty:false,sha:null};
+  var syncStatus=''; // '', 'busy', 'ok', 'err'
+  var syncLastOk=null;
+  var syncPushTimer=null;
+  var syncTickTimer=null;
+
+  function syncConfigured(){ return !!(sync.owner&&sync.repo&&sync.token); }
+  function saveSync(){ save(LS_SYNC,sync); }
+  function syncAuthHeaders(){ return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+sync.token,'X-GitHub-Api-Version':'2022-11-28'}; }
+  function syncApi(path,opts){
+    return fetch('https://api.github.com'+path,opts);
+  }
+  function b64utf8(s){ return btoa(unescape(encodeURIComponent(s))); }
+  function utf8b64(s){ return decodeURIComponent(escape(atob(s))); }
+  function localHasData(){ return habits.length>0||Object.keys(records).length>0; }
+  function pad2(n){ return (n<10?'0':'')+n; }
+
+  function setSyncBusy(){ syncStatus='busy'; updateSyncUI(); }
+  function setSyncOk(){ syncStatus='ok'; syncLastOk=new Date(); updateSyncUI(); }
+  function setSyncErr(){ syncStatus='err'; updateSyncUI(); }
+
+  function updateSyncUI(){
+    var text,cls;
+    if(!syncConfigured()){ text='仅本机保存 · 点此开启多端同步'; cls=''; }
+    else if(sync.dirty){ text='等待同步…'; cls='busy'; }
+    else if(syncStatus==='err'){ text='同步失败，稍后自动重试'; cls='err'; }
+    else if(syncStatus==='ok'&&syncLastOk){ text='已同步 '+pad2(syncLastOk.getHours())+':'+pad2(syncLastOk.getMinutes()); cls='ok'; }
+    else { text='正在同步…'; cls='busy'; }
+    syncText.textContent=text;
+    syncText.className='st'+(cls?(' '+cls):'');
+    if(!syncConfigured()){ syncBadge.textContent='未开启'; syncBadge.className='syncbadge off'; }
+    else if(syncStatus==='err'){ syncBadge.textContent='连接异常'; syncBadge.className='syncbadge err'; }
+    else { syncBadge.textContent='已开启'; syncBadge.className='syncbadge'; }
+  }
+
+  async function fetchRemote(){
+    var path='/repos/'+encodeURIComponent(sync.owner)+'/'+encodeURIComponent(sync.repo)+'/contents/habits.json?ref='+encodeURIComponent(sync.branch);
+    var r=await syncApi(path,{headers:syncAuthHeaders()});
+    if(r.status===404) return {status:404,file:null};
+    if(!r.ok){
+      var em={};
+      try{ em=await r.json(); }catch(e){}
+      var why=r.status===401?'认证失败（Token 无效）':r.status===403?'权限不足或触发限流':('HTTP '+r.status);
+      throw new Error(why+((em&&em.message)?('：'+em.message):''));
+    }
+    var j=await r.json();
+    var obj;
+    try{ obj=JSON.parse(utf8b64(j.content)); }catch(e){ throw new Error('远端数据无法解析'); }
+    return {status:200,file:{sha:j.sha,obj:obj}};
+  }
+
+  function syncPayload(){
+    return {habits:habits,records:records,updatedAt:sync.updatedAt||new Date().toISOString()};
+  }
+
+  async function pushRemote(){
+    var base='/repos/'+encodeURIComponent(sync.owner)+'/'+encodeURIComponent(sync.repo)+'/contents/habits.json';
+    var attempt=0;
+    while(attempt<2){
+      attempt++;
+      var body={message:'habit sync '+new Date().toISOString(),content:b64utf8(JSON.stringify(syncPayload()))};
+      var getR=await syncApi(base+'?ref='+encodeURIComponent(sync.branch),{headers:syncAuthHeaders()});
+      if(getR.ok){
+        var gj=await getR.json();
+        sync.sha=gj.sha;
+        body.sha=gj.sha;
+      }else if(getR.status!==404){
+        var ge={}; try{ ge=await getR.json(); }catch(e){}
+        throw new Error('读取远端失败 HTTP '+getR.status+((ge&&ge.message)?('：'+ge.message):''));
+      }
+      var putR=await syncApi(base,{method:'PUT',headers:{'Accept':'application/vnd.github+json','Authorization':'Bearer '+sync.token,'X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(putR.status===200||putR.status===201){
+        try{ var pj=await putR.json(); if(pj&&pj.content&&pj.content.sha) sync.sha=pj.content.sha; }catch(e){}
+        sync.dirty=false;
+        saveSync();
+        setSyncOk();
+        return;
+      }
+      if(putR.status===409){
+        var cf;
+        try{ cf=await fetchRemote(); }catch(e){ cf={status:0,file:null}; }
+        if(cf.status===200&&cf.file&&cf.file.obj&&cf.file.obj.updatedAt&&cf.file.obj.updatedAt>sync.updatedAt){
+          adoptRemote(cf.file.obj);
+          return;
+        }
+        continue;
+      }
+      var pe={}; try{ pe=await putR.json(); }catch(e){}
+      throw new Error('写入失败 HTTP '+putR.status+((pe&&pe.message)?('：'+pe.message):''));
+    }
+    throw new Error('同步冲突，请稍后重试');
+  }
+
+  function doPush(){
+    if(!syncConfigured()) return;
+    sync.dirty=true;
+    saveSync();
+    setSyncBusy();
+    pushRemote().catch(function(){ setSyncErr(); });
+  }
+
+  function adoptRemote(obj){
+    habits=(obj&&Array.isArray(obj.habits))?obj.habits:[];
+    records=(obj&&obj.records&&typeof obj.records==='object'&&!Array.isArray(obj.records))?obj.records:{};
+    habits=habits.filter(function(h){ return h&&typeof h.id==='string'&&typeof h.name==='string'&&h.name.trim().length>0; });
+    sanitizeAll();
+    sync.updatedAt=(obj&&obj.updatedAt)||new Date().toISOString();
+    sync.dirty=false;
+    save(LS_HABITS,habits);
+    save(LS_RECORDS,records);
+    saveSync();
+    setSyncOk();
+    render();
+  }
+
+  function remoteEmpty(obj){
+    if(obj&&Array.isArray(obj.habits)&&obj.habits.length>0) return false;
+    if(obj&&obj.records&&typeof obj.records==='object'&&!Array.isArray(obj.records)&&Object.keys(obj.records).length>0) return false;
+    return true;
+  }
+  function mergeRemote(obj){
+    var map={}; var merged=[];
+    (obj&&Array.isArray(obj.habits)?obj.habits:[]).forEach(function(h){ if(h&&h.id&&!map[h.id]){ map[h.id]=1; merged.push(h); } });
+    habits.forEach(function(h){ if(h&&h.id&&!map[h.id]){ map[h.id]=1; merged.push(h); } });
+    habits=merged;
+    var rec=(obj&&obj.records&&typeof obj.records==='object'&&!Array.isArray(obj.records))?obj.records:{};
+    Object.keys(rec).forEach(function(k){
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+      var arr=rec[k];
+      if(!Array.isArray(arr)) return;
+      if(!records[k]) records[k]=[];
+      arr.forEach(function(id){ if(records[k].indexOf(id)<0) records[k].push(id); });
+    });
+    sanitizeAll();
+    var now=new Date().toISOString();
+    var rts=(obj&&obj.updatedAt)||'';
+    sync.updatedAt=(rts&&rts>now)?rts:now;
+    sync.dirty=true;
+    save(LS_HABITS,habits);
+    save(LS_RECORDS,records);
+    saveSync();
+    render();
+    doPush();
+  }
+
+  async function syncTick(){
+    if(!syncConfigured()){ updateSyncUI(); return; }
+    var res;
+    try{ res=await fetchRemote(); }
+    catch(e){ setSyncErr(); return; }
+    if(res.status===200){
+      var obj=res.file.obj;
+      var rts=(obj&&obj.updatedAt)||'';
+      var lts=sync.updatedAt||'';
+      if(!lts){
+        var locData=localHasData();
+        var remEmpty=remoteEmpty(obj);
+        if(locData&&remEmpty){ sync.updatedAt=new Date().toISOString(); sync.dirty=true; saveSync(); doPush(); return; }
+        if(locData&&!remEmpty){ mergeRemote(obj); return; }
+        adoptRemote(obj);
+        return;
+      }
+      if(sync.dirty&&(!rts||lts>=rts)){ sync.sha=res.file.sha; saveSync(); doPush(); return; }
+      if(rts>lts){ adoptRemote(obj); return; }
+      sync.sha=res.file.sha;
+      saveSync();
+      setSyncOk();
+      return;
+    }
+    if(res.status===404){
+      if(sync.dirty||localHasData()){ doPush(); return; }
+      setSyncOk();
+      return;
+    }
+    setSyncErr();
+  }
+
+  function syncInit(){
+    if(!syncConfigured()){ updateSyncUI(); return; }
+    setSyncBusy();
+    syncTick();
+  }
+
+  function markDirty(){
+    var t=new Date().toISOString();
+    if(!sync.updatedAt||t>sync.updatedAt) sync.updatedAt=t;
+    sync.dirty=true;
+    saveSync();
+    if(syncPushTimer) clearTimeout(syncPushTimer);
+    syncPushTimer=setTimeout(function(){ syncPushTimer=null; doPush(); },600);
+    updateSyncUI();
+  }
+
+  function resetSyncConfig(){
+    sync={owner:'',repo:'',token:'',branch:'main',updatedAt:null,dirty:false,sha:null};
+    syncStatus=''; syncLastOk=null;
+    saveSync();
+    sOwner.value=''; sRepo.value=''; sToken.value='';
+    sHint.textContent=''; sHint.className='synckey';
+    updateSyncUI();
+  }
+
+  /* ---------- 主渲染 ---------- */
+  var pendingDelete=null;
+  var viewYear,viewMonth;
+
+  function habitsOn(key){ return habits.filter(function(h){ return h.createdAt<=key; }); }
+  function doneCountOn(key){
+    var arr=records[key];
+    if(!arr||arr.length===0) return 0;
+    var set={}; arr.forEach(function(id){ set[id]=1; });
+    var n=0;
+    habits.forEach(function(h){ if(h.createdAt<=key&&set[h.id]) n++; });
+    return n;
+  }
+
+  function render(){
+    var key=todayKey();
+    var total=habits.length;
+    var doneSet={};
+    (records[key]||[]).forEach(function(id){ doneSet[id]=1; });
+    var done=0; habits.forEach(function(h){ if(doneSet[h.id]) done++; });
+
+    var now=new Date();
+    dateLabel.textContent=now.getMonth()+1+'月'+now.getDate()+'日 · 星期'+'日一二三四五六'.charAt(now.getDay());
+    bigProgress.innerHTML=done+'<span class="big-total"> / '+total+'</span>';
+    barFill.style.width=(total>0?Math.round(done/total*100):0)+'%';
+
+    var msg;
+    if(total===0){ msg='添加几个想坚持的习惯，开始打卡吧'; subLabel.className='hsub'; }
+    else if(done===0){ msg='今天一个都还没完成，加油 💪'; subLabel.className='hsub'; }
+    else if(done===total){ msg='今天全部完成，太棒了 🎉'; subLabel.className='hsub celebrate'; }
+    else { msg='已完成 '+done+' 项，还差 '+(total-done)+' 项，坚持！'; subLabel.className='hsub'; }
+    subLabel.textContent=msg;
+
+    if(total===0){
+      habitList.innerHTML='';
+      emptyBox.hidden=false;
+    }else{
+      emptyBox.hidden=true;
+      var html='';
+      habits.forEach(function(h){
+        var id=h.id, isDone=!!doneSet[id];
+        if(pendingDelete===id){
+          html+='<li class="habit confirm" data-id="'+id+'">'
+            +'<span class="cf-text">删除「'+esc(h.name)+'」并清理它的打卡记录？</span>'
+            +'<span class="cf-actions">'
+            +'<button type="button" class="mini danger" data-action="delOk">删除</button>'
+            +'<button type="button" class="mini gray" data-action="delNo">取消</button>'
+            +'</span></li>';
+        }else{
+          html+='<li class="habit'+(isDone?' done':'')+'" data-id="'+id+'">'
+            +'<span class="hemoji">'+esc(h.emoji)+'</span>'
+            +'<span class="hname">'+esc(h.name)+'</span>'
+            +'<span class="hcheck" data-action="toggle" role="button" aria-label="'+(isDone?'取消打卡':'完成打卡')+'"></span>'
+            +'<button type="button" class="hdel" data-action="del" aria-label="删除习惯">✕</button>'
+            +'</li>';
+        }
+      });
+      habitList.innerHTML=html;
+    }
+    histCard.hidden=(total===0);
+    renderCalendar(key);
+    updateSyncUI();
+  }
+
+  function renderCalendar(todayK){
+    var t=todayK||todayKey();
+    var now=new Date();
+    calTitle.textContent=viewYear+'年'+(viewMonth+1)+'月';
+    nextBtn.disabled=(viewYear===now.getFullYear()&&viewMonth===now.getMonth());
+    var first=new Date(viewYear,viewMonth,1);
+    var lead=(first.getDay()+6)%7;
+    var dim=new Date(viewYear,viewMonth+1,0).getDate();
+    var html='',i;
+    for(i=0;i<lead;i++) html+='<span class="ccell blank"></span>';
+    for(i=1;i<=dim;i++){
+      var dt=new Date(viewYear,viewMonth,i);
+      var k=dateKeyOf(dt);
+      var y=habitsOn(k).length;
+      var x=doneCountOn(k);
+      var isToday=(k===t);
+      var isFuture=(k>t);
+      var full=(y>0&&x===y);
+      var cls='ccell';
+      if(isToday) cls+=' today';
+      if(isFuture) cls+=' future';
+      if(full&&!isFuture) cls+=' full';
+      var stat='';
+      if(!isFuture&&y>0){
+        if(x>0) stat='<span class="dstat">'+x+'/'+y+'</span>';
+        else stat='<span class="dstat zero">0/'+y+'</span>';
+      }
+      html+='<span class="'+cls+'"><span class="dnum">'+i+'</span>'+stat+'</span>';
+    }
+    calGrid.innerHTML=html;
+  }
+
+  function toggleHabit(id){
+    var k=todayKey();
+    var arr=(records[k]||[]).slice();
+    var idx=arr.indexOf(id);
+    if(idx>=0) arr.splice(idx,1); else arr.push(id);
+    if(arr.length) records[k]=arr; else delete records[k];
+    save(LS_RECORDS,records);
+    markDirty();
+    render();
+  }
+  function deleteHabit(id){
+    habits=habits.filter(function(h){ return h.id!==id; });
+    Object.keys(records).forEach(function(k){
+      records[k]=records[k].filter(function(x){ return x!==id; });
+      if(records[k].length===0) delete records[k];
+    });
+    pendingDelete=null;
+    save(LS_HABITS,habits);
+    save(LS_RECORDS,records);
+    markDirty();
+    render();
+  }
+  function addHabit(name,emoji){
+    habits.push({ id:uid(), name:name, emoji:emoji||'⭐', createdAt:todayKey() });
+    save(LS_HABITS,habits);
+    markDirty();
+    render();
+  }
+
+  habitList.addEventListener('click',function(e){
+    var li=e.target&&e.target.closest?e.target.closest('li.habit'):null;
+    if(!li) return;
+    var id=li.getAttribute('data-id');
+    var actEl=e.target.closest('[data-action]');
+    if(actEl){
+      var a=actEl.getAttribute('data-action');
+      if(a==='del'){ pendingDelete=(pendingDelete===id?null:id); render(); return; }
+      if(a==='delOk'){ deleteHabit(id); return; }
+      if(a==='delNo'){ pendingDelete=null; render(); return; }
+    }
+    if(pendingDelete===id) return;
+    toggleHabit(id);
+  });
+
+  chips.addEventListener('click',function(e){
+    var b=e.target&&e.target.closest?e.target.closest('button[data-name]'):null;
+    if(!b) return;
+    addHabit(b.getAttribute('data-name'),b.getAttribute('data-emoji')||'⭐');
+  });
+
+  var errTimer=null;
+  function showErr(m){
+    errBox.textContent=m; errBox.hidden=false;
+    if(errTimer) clearTimeout(errTimer);
+    errTimer=setTimeout(function(){ errBox.hidden=true; },2200);
+  }
+  addForm.addEventListener('submit',function(e){
+    e.preventDefault();
+    var name=nameInput.value.trim();
+    if(!name){ showErr('请输入习惯名称'); nameInput.focus(); return; }
+    if(Array.from(name).length>20){ showErr('习惯名称最多 20 个字'); return; }
+    var em=Array.from(emojiInput.value.trim()).slice(0,4).join('');
+    addHabit(name,em||'⭐');
+    nameInput.value=''; emojiInput.value=''; nameInput.focus();
+  });
+
+  prevBtn.addEventListener('click',function(){
+    viewMonth--; if(viewMonth<0){ viewMonth=11; viewYear--; } render();
+  });
+  nextBtn.addEventListener('click',function(){
+    var now=new Date();
+    if(viewYear>now.getFullYear()||(viewYear===now.getFullYear()&&viewMonth>=now.getMonth())) return;
+    viewMonth++; if(viewMonth>11){ viewMonth=0; viewYear++; } render();
+  });
+
+  /* ---------- 设置面板 ---------- */
+  function openSyncPanel(){
+    syncCard.hidden=!syncCard.hidden;
+    if(!syncCard.hidden){
+      sOwner.value=sync.owner||'';
+      sRepo.value=sync.repo||'';
+      sToken.value=sync.token||'';
+      sHint.textContent='';
+      sHint.className='synckey';
+    }
+  }
+  gearBtn.addEventListener('click',openSyncPanel);
+  footBtn.addEventListener('click',openSyncPanel);
+
+  function showHint(m,cls){
+    sHint.textContent=m;
+    sHint.className='synckey'+(cls?(' '+cls):'');
+  }
+
+  sSave.addEventListener('click',function(){
+    var owner=sOwner.value.trim();
+    var repo=sRepo.value.trim();
+    var token=sToken.value.trim();
+    if(!owner||!repo||!token){ showHint('请填写 GitHub 用户名、仓库名和 Token 三项。','err'); return; }
+    if(!/^[A-Za-z0-9-]+$/.test(owner)){ showHint('用户名格式不正确。','err'); return; }
+    if(!/^[A-Za-z0-9_.-]+$/.test(repo)){ showHint('仓库名格式不正确。','err'); return; }
+    sync.owner=owner; sync.repo=repo; sync.token=token; sync.branch='main';
+    saveSync();
+    showHint('正在连接并同步…','');
+    syncInit();
+  });
+
+  sTest.addEventListener('click',async function(){
+    if(!syncConfigured()){ showHint('请先填写并保存设置。','err'); return; }
+    showHint('正在测试连接…','');
+    setSyncBusy();
+    try{
+      var r=await syncApi('/repos/'+encodeURIComponent(sync.owner)+'/'+encodeURIComponent(sync.repo),{headers:syncAuthHeaders()});
+      if(r.ok){ setSyncOk(); showHint('连接成功 ✓ 用户名与仓库有效。','ok'); }
+      else if(r.status===401){ setSyncErr(); showHint('Token 无效或已过期。','err'); }
+      else if(r.status===403){ setSyncErr(); showHint('Token 权限不足（需要 Contents 读写）。','err'); }
+      else if(r.status===404){ setSyncErr(); showHint('仓库不存在，请检查用户名与仓库名。','err'); }
+      else { setSyncErr(); showHint('连接异常：HTTP '+r.status,'err'); }
+    }catch(e){ setSyncErr(); showHint('网络错误，无法连接 GitHub：'+e.message,'err'); }
+  });
+
+  sClear.addEventListener('click',function(){
+    resetSyncConfig();
+    showHint('已清除，回到仅本机保存。','');
+  });
+
+  /* ---------- 日期切换 & 定时同步 ---------- */
+  function resetCal(){ var n=new Date(); viewYear=n.getFullYear(); viewMonth=n.getMonth(); }
+
+  var currentDayKey=todayKey();
+  function onDayTick(){
+    var k=todayKey();
+    if(k!==currentDayKey){
+      currentDayKey=k;
+      var n=new Date();
+      if(viewYear!==n.getFullYear()||viewMonth!==n.getMonth()) resetCal();
+      pendingDelete=null;
+      render();
+    }
+    if(syncTickTimer) clearTimeout(syncTickTimer);
+    syncTickTimer=setTimeout(function(){ syncTickTimer=null; syncTick(); },1500);
+  }
+  setInterval(onDayTick,60000);
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) onDayTick(); });
+  window.addEventListener('focus',onDayTick);
+
+  resetCal();
+  render();
+  syncInit();
+})();
+</script>
+</body>
+</html>
