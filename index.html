@@ -119,6 +119,27 @@ body{
 .ccell.future{opacity:.38;}
 .calnote{margin-top:12px;font-size:12px;color:#C5B9AD;text-align:center;}
 
+.week-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;}
+.week-head h2{margin:0;font-size:15px;font-weight:700;color:var(--muted);}
+.week-range{font-size:12px;color:#B6ABA0;font-variant-numeric:tabular-nums;}
+.wg{margin-top:13px;}
+.wg-line{display:flex;align-items:baseline;justify-content:space-between;font-size:12px;color:#9C8F86;margin-bottom:6px;}
+.wg-line b{color:#6A5AB8;font-weight:800;font-variant-numeric:tabular-nums;font-size:12.5px;}
+.pbar{height:9px;border-radius:99px;background:#F1EAE4;overflow:hidden;}
+.pbar i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#BDB2F4,#8677D3);transition:width .4s ease;}
+.week-days{margin-top:16px;}
+.week-bars{display:flex;gap:5px;}
+.wb{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;}
+.wbtop{height:16px;line-height:16px;}
+.wbtick{color:#6A5AB8;font-weight:900;font-size:12px;}
+.wbbar{height:56px;width:100%;display:flex;align-items:flex-end;justify-content:center;}
+.wbbar i{display:block;width:11px;border-radius:6px;background:#F0E9F9;transition:height .3s ease;}
+.wb.has .wbbar i{background:linear-gradient(180deg,#BDB2F4,#8677D3);}
+.wb.full .wbbar i,.wb.today .wbbar i{background:linear-gradient(180deg,#9A8BE6,#6A5AB8);}
+.wbl{font-size:11px;color:#B6ABA0;margin-top:5px;}
+.wb.today .wbl{color:#6A5AB8;font-weight:800;}
+.wb.future{opacity:.45;}
+
 /* sync settings */
 .synchead{display:flex;align-items:center;justify-content:space-between;}
 .synchead h2{margin:0;font-size:15px;font-weight:700;color:var(--muted);}
@@ -158,6 +179,24 @@ body{
       <div class="hbig" id="bigProgress"></div>
     </div>
     <div class="bar"><i id="barFill"></i></div>
+  </section>
+
+  <section class="card week-card">
+    <div class="week-head">
+      <h2>本周统计</h2>
+      <span class="week-range" id="weekRange"></span>
+    </div>
+    <div class="wg">
+      <div class="wg-line"><span>坚持天数</span><b id="wgStickT"></b></div>
+      <div class="pbar"><i id="wgStickB"></i></div>
+    </div>
+    <div class="wg">
+      <div class="wg-line"><span>打卡完成</span><b id="wgDoneT"></b></div>
+      <div class="pbar"><i id="wgDoneB"></i></div>
+    </div>
+    <div class="week-days">
+      <div class="week-bars" id="weekDays"></div>
+    </div>
   </section>
 
   <section class="card" id="syncCard" hidden>
@@ -268,6 +307,7 @@ body{
   var habitList=$('habitList'), emptyBox=$('emptyBox'), chips=$('chips');
   var addForm=$('addForm'), nameInput=$('nameInput'), emojiInput=$('emojiInput'), errBox=$('errBox');
   var histCard=$('histCard'), prevBtn=$('prevBtn'), nextBtn=$('nextBtn'), calTitle=$('calTitle'), calGrid=$('calGrid');
+  var weekDays=$('weekDays'), weekRange=$('weekRange'), wgStickT=$('wgStickT'), wgStickB=$('wgStickB'), wgDoneT=$('wgDoneT'), wgDoneB=$('wgDoneB');
   var gearBtn=$('gearBtn'), syncCard=$('syncCard'), syncBadge=$('syncBadge');
   var sOwner=$('sOwner'), sRepo=$('sRepo'), sToken=$('sToken'), sSave=$('sSave'), sTest=$('sTest'), sClear=$('sClear'), sHint=$('sHint');
   var footBtn=$('footBtn'), syncText=$('syncText');
@@ -536,8 +576,50 @@ body{
       habitList.innerHTML=html;
     }
     histCard.hidden=(total===0);
-    renderCalendar(key);
+    renderWeek();
+    renderCalendar(key);    renderCalendar(key);
     updateSyncUI();
+  }
+
+  function renderWeek(){
+    var now=new Date();
+    var wd=(now.getDay()+6)%7;
+    var mon=new Date(now.getFullYear(),now.getMonth(),now.getDate()-wd);
+    var sun=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+6);
+    var tKey=todayKey();
+    var i, elapsed=wd+1, stick=0, totalChecks=0, maxPossible=0, rows=[];
+    for(i=0;i<7;i++){
+      var dt=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+      var k=dateKeyOf(dt);
+      var y=habitsOn(k).length;
+      var x=doneCountOn(k);
+      var future=(k>tKey);
+      if(!future){ maxPossible+=y; totalChecks+=x; if(x>0) stick++; }
+      rows.push({x:x,y:y,future:future,today:(k===tKey),full:(!future&&y>0&&x===y)});
+    }
+    weekRange.textContent=(mon.getMonth()+1)+'月'+mon.getDate()+'日 – '+(sun.getMonth()+1)+'月'+sun.getDate()+'日';
+    var hasHabits=habits.length>0;
+    wgStickT.textContent=hasHabits?('已坚持 '+stick+' / '+elapsed+' 天'):'—';
+    wgDoneT.textContent=hasHabits?('完成 '+totalChecks+' / '+maxPossible+' 次'):'—';
+    wgStickB.style.width=(hasHabits&&elapsed>0?Math.round(stick/elapsed*100):0)+'%';
+    wgDoneB.style.width=(hasHabits&&maxPossible>0?Math.round(totalChecks/maxPossible*100):0)+'%';
+    var html='', labels='一二三四五六日';
+    for(i=0;i<7;i++){
+      var r=rows[i];
+      var cls='wb';
+      if(r.today) cls+=' today';
+      if(r.future) cls+=' future';
+      if(!r.future&&r.y>0&&r.x>0) cls+=' has';
+      if(r.full) cls+=' full';
+      var h=4;
+      if(!r.future&&r.y>0) h=r.x>0?Math.max(12,Math.round(r.x/r.y*48)):4;
+      html+='<div class="'+cls+'" title="'+labels.charAt(i)+' 完成 '+(r.y>0?r.x+' / '+r.y:'—')+'">'
+        +'<div class="wbtop">'+(r.full?'<span class="wbtick">✓</span>':'')+'</div>'
+        +'<div class="wbbar"><i style="height:'+h+'px"></i></div>'
+        +'<div class="wbl">'+labels.charAt(i)+'</div>'
+        +'</div>';
+    }
+    weekDays.innerHTML=html;
   }
 
   function renderCalendar(todayK){
